@@ -51,13 +51,50 @@ axl_xfer_str_to_xfer(const char *xfer_str)
 static void
 usage(void)
 {
-    printf("Usage: axl_cp [-r|-R] [-X xfer_type] SOURCE DEST\n");
-    printf("       axl_cp [-r|-R] [-X xfer_type] SOURCE... DIRECTORY\n");
+    printf("Usage: axl_cp [-C key1=value1, ...] [-r|-R] [-X xfer_type] SOURCE DEST\n");
+    printf("       axl_cp [-C key1=value1, ...] [-r|-R] [-X xfer_type] SOURCE... DIRECTORY\n");
     printf("\n");
+    printf("-C key=value    Set AXL_Config key to value\n");
     printf("-r|-R:          Copy directories recursively\n");
     printf("-X xfer_type:   AXL transfer type:  default native pthread sync dw bbapi cppr\n");
     printf("\n");
 
+}
+
+/* Given a string like "key1=value1,key2=value2...", set the AXL_Config keys to values */
+int set_axl_config(int id, char *key_value_str)
+{
+
+    char *token;
+    char *str = strdup(key_value_str);
+    char *value;
+    char *key;
+
+    token = strtok(str, ",");
+    while (token != NULL) {
+        /* We have an individual key=value string */
+        key = strdup(token);
+        
+        /* Find the '=' */
+        value = strchr(key, '=');
+
+        /* Break it into two strings */
+        *value = '\0';
+
+        /* point value to the beginning of the value */
+        value++;
+
+        if (AXL_Config(id, key, value) == NULL) {
+            printf("%s: bad config\n", __func__);
+            free(key);
+            free(str);
+            return EINVAL;
+        }
+        free(key);
+        token = strtok(NULL, ",");
+    }
+    free(str);
+    return 0;
 }
 
 void sig_func(int signum)
@@ -87,11 +124,15 @@ main(int argc, char **argv) {
     int i;
     int recursive = 0;
     struct sigaction action = {0};
+    char *config_str = NULL;
     action.sa_handler = sig_func;
     sigaction(SIGTERM, &action, NULL);
 
-    while ((opt = getopt(argc, argv, "rRX:")) != -1) {
+    while ((opt = getopt(argc, argv, "C:rRX:")) != -1) {
         switch (opt) {
+            case 'C':
+                config_str = optarg;
+                break;
             case 'X':
                 xfer_str = optarg;
                 break;
@@ -152,6 +193,14 @@ main(int argc, char **argv) {
     if (id == -1) {
         printf("AXL_Create() failed (error %d)\n", id);
         return id;
+    }
+
+    /* Set our AXL_Config values, if specified */
+    if (config_str) {
+        if (set_axl_config(id, config_str) != 0) {
+            printf("Couldn't set config\n");
+            exit(1);
+        }
     }
 
     for (i = 0; i < src_count; i++) {

@@ -869,3 +869,83 @@ int AXL_Stop ()
 
     return rc;
 }
+
+/* 
+ * Get/set a AXL configuration key
+ *
+ * This function allows you to get and set AXL configuration key values.
+ *
+ * key:         The configuration key you're looking up
+ * set_value:   If you're setting a value, put your value here.  If you're
+ *              getting a value, leave this NULL.
+ *
+ * On success, this will return the value you're getting or setting.  On
+ * failure it will return NULL.  All values are strings.
+ */
+char *
+AXL_Config (int id, char *key, char *set_value)
+{
+    /* lookup transfer info for the given id */
+    kvtree* file_list = NULL;
+    axl_xfer_t xtype = AXL_XFER_NULL;
+    axl_xfer_state_t xstate = AXL_XFER_STATE_NULL;
+    kvtree *axl_config;
+    char *rc_str = NULL;
+    int i;
+    const char * valid_keys[] = {
+        "file_delay",
+    };
+
+    if (!key) {
+        AXL_ERR("key is NULL");
+        return NULL;
+    }    
+
+    /* Is it a valid key? */
+    for (i = 0; i < ARRAY_SIZE(valid_keys); i++) {
+        if (strcmp(valid_keys[i], key) == 0) {
+            /* match */
+            break;
+        }
+    }
+
+    if (i == ARRAY_SIZE(valid_keys)) {
+        /* no match */
+        AXL_ERR("'%s' is not an AXL_Config key\n", key);
+        return NULL;
+    }
+
+    if (axl_get_info(id, &file_list, &xtype, &xstate) != AXL_SUCCESS) {
+        AXL_ERR("Could not find transfer info for UID %d", id);
+        return NULL;
+    }
+
+    axl_config = kvtree_get(file_list, AXL_KEY_CONFIG);
+    if (!axl_config) {
+        /* This is the first time setting a config value, create kvtree */
+        axl_config = kvtree_new();
+        if (!axl_config)
+            return NULL;
+    }
+
+    if (set_value) {
+        /* Special case: if set_value is "", then they're clearing the value */
+        if (set_value[0] == '\0') {
+            kvtree_unset(axl_config, key);
+        } else {
+            if (kvtree_util_set_str(axl_config, key, set_value) != KVTREE_SUCCESS) {
+                AXL_ERR("Couldn't set config string");
+                rc_str = NULL;
+            } else {
+                rc_str = set_value;
+            }
+        }
+    } else {
+        if (kvtree_util_get_str(axl_config, key, &rc_str) != KVTREE_SUCCESS) {
+            rc_str = NULL;
+        }
+    }
+    kvtree_set(file_list, AXL_KEY_CONFIG, axl_config);
+
+    return rc_str;
+}

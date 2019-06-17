@@ -73,6 +73,15 @@ int AXL_Free (int id);
  * useful to clean the plate when restarting */
 int AXL_Stop (void);
 
+/* 
+ * Get/set AXL configuration variables
+ *
+ * - Variables - 
+ * file_delay:  Wait this number of milliseconds between transferring each file
+ */
+char * AXL_Config (int id, char *key, char *set_value);
+
+
 /* enable C++ codes to include this header directly */
 #ifdef __cplusplus
 } /* extern "C" */

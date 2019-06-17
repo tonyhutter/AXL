@@ -27,7 +27,10 @@ extern kvtree* axl_file_lists;
 #define AXL_KEY_FILE_STATUS   ("STATUS")
 #define AXL_KEY_FILE_CRC      ("CRC")
 #define AXL_KEY_PTHREAD_DATA  ("PTHREAD_DATA")
+#define AXL_KEY_CONFIG        ("CONFIG")
 
+/* Some KEYs are exposed to the user via AXL_Config().  See axl.h for
+ * a list of those keys. */
 
 /* TRANSFER STATUS */
 #define AXL_STATUS_SOURCE (1)
@@ -39,6 +42,9 @@ extern kvtree* axl_file_lists;
  * https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html */
 #define AXL_ERR(format, ...) axl_err(format " @ %s %s:%d", ##__VA_ARGS__, __func__, __FILE__, __LINE__)
 #define AXL_DBG(level, format, ...) axl_dbg(level, format " @ %s %s:%d", ##__VA_ARGS__, __func__, __FILE__, __LINE__)
+
+/* Return the number of elements in our array */
+#define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
 
 /*
 =========================================
